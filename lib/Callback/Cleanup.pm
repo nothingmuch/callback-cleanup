@@ -8,6 +8,8 @@ use warnings;
 use base qw/Exporter/;
 BEGIN { our @EXPORT = qw/cleanup callback/ }
 
+our $VERSION = "0.01";
+
 use overload '&{}' => sub { $_[0][0] };
 
 sub new {
