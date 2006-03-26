@@ -10,14 +10,14 @@ BEGIN { our @EXPORT = qw/cleanup callback/ }
 
 our $VERSION = "0.01";
 
-use overload '&{}' => sub { $_[0][0] };
+use overload '&{}' => sub { $_[0]{body} };
 
 sub new {
 	my ( $pkg, $sub, $cleanup ) = @_;
-	bless [ $sub, $cleanup ], $pkg;
+	bless { body => $sub, cleanup => $cleanup }, $pkg;
 }
 
-sub DESTROY { $_[0][1]->() }
+sub DESTROY { $_[0]{cleanup}->() }
 
 sub cleanup (&;$) {
 	my ( $cleanup, $sub ) = @_;
