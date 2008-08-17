@@ -8,6 +8,8 @@ my $build = Module::Build->new(
 	requires		   => {
 		'ok' => 0,
 		'Sub::Exporter' => 0,
+		'Sub::Clone' => 0,
+		'Hash::Util::FieldHash::Compat' => 0,
 	},
 	create_readme => 1,
 	sign		  => 1,

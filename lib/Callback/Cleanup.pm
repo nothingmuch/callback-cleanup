@@ -5,7 +5,9 @@ package Callback::Cleanup;
 use strict;
 use warnings;
 
-use B qw(svref_2object CVf_CLONED);
+use Sub::Clone qw(clone_if_immortal);
+
+use Hash::Util::FieldHash::Compat qw(idhash);
 
 use Sub::Exporter -setup => {
 	exports => [qw(cleanup callback)],
@@ -24,54 +26,19 @@ sub callback (&;$) {
 	$cleanup ? __PACKAGE__->new( $sub, $cleanup ) : $sub;
 }
 
+idhash my %cleanups;
+
 sub new {
 	my ( $class, $body, $cleanup ) = @_;
 
-	if ( svref_2object($body)->CvFLAGS & CVf_CLONED ) {
-		Callback::Cleanup::Closure->new($body, $cleanup);
-	} else {
-		Callback::Cleanup::Array->new($body, $cleanup);
-	}
+	my $refcounted = clone_if_immortal($body);
+
+	$cleanups{$refcounted} = $cleanup;
+
+	bless $refcounted, $class;
 }
 
-{
-	package Callback::Cleanup::Base;
-
-	sub DESTROY { $_[0]->cleanup }
-}
-
-{
-	package Callback::Cleanup::Closure;
-	use base qw(Callback::Cleanup::Base);
-
-	use Hash::Util::FieldHash::Compat qw(fieldhash);
-
-	use namespace::clean;
-
-	fieldhash my %cleanups;
-
-	sub new {
-		my ( $pkg, $sub, $cleanup ) = @_;
-		$cleanups{$sub} = $cleanup;
-		bless $sub, $pkg;
-	}
-
-	sub cleanup { $cleanups{$_[0]}->() }
-}
-
-{
-	package Callback::Cleanup::Array;
-	use base qw(Callback::Cleanup::Base);
-
-	use overload '&{}' => sub { $_[0]{body} };
-
-	sub new {
-		my ( $pkg, $sub, $cleanup ) = @_;
-		bless { body => $sub, cleanup => $cleanup }, $pkg;
-	}
-
-	sub cleanup { $_[0]{cleanup}->() }
-}
+sub DESTROY { delete($cleanups{$_[0]})->() }
 
 __PACKAGE__;
 
@@ -145,27 +112,8 @@ As well as a few other useless forms.
 In perl code references that are not closures aren't garbage collected (they
 are shared).
 
-In order to make those still work Callback::Cleanup wraps them in a simple
-overloading object.
-
-You can avoid this workaround by always ensuring the objects you pass in
-always close over something.
-
-Note that this will bless your closures, and you can't have more than one
-cleanup sub associated with a closure.
-
-If you want to force one behavior or another, use L<Callback::Cleanup::Closure>
-or L<Callback::Cleanup::Array> directly:
-
-	Callback::Cleanup::Closure->new(
-		\&foo,
-		sub { warn "this is probably global destruction" },
-	);
-
-	Callback::Cleanup::Array->new(
-		sub { $closure_var }, # avoids blessing this by wrapping instead
-		sub { ... },
-	);
+This module uses L<Sub::Clone/clone_if_immortal> to make sure timely
+destruction of these callbacks happens.
 
 =head1 AUTHOR
 
