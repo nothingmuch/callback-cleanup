@@ -14,7 +14,7 @@ use Sub::Exporter -setup => {
 	groups  => { default => [":all"] },
 };
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 sub cleanup (&;$) {
 	my ( $cleanup, $sub ) = @_;
