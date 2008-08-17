@@ -6,7 +6,8 @@ my $build = Module::Build->new(
 	license			   => 'perl',
 	module_name		   => 'Callback::Cleanup',
 	requires		   => {
-		'ok'   => 0,
+		'ok' => 0,
+		'Sub::Exporter' => 0,
 	},
 	create_readme => 1,
 	sign		  => 1,
